@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EZ remote web</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <!-- <link type="text/css" href="{{ url_for('static', filename='style.css') }}" rel="stylesheet"> -->
+    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
+    <style>
+        body {
+            background-color: #181818;
+            /* 深灰色背景 */
+            color: #ffffff;
+            /* 白色文字 */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .big {
+            font-size: 16px;
+            /* 合适的字体大小 */
+            padding: 10px 20px;
+            /* 上下左右的内边距 */
+            background-color: #f980bc;
+            /* 按钮背景色（蓝色） */
+            color: white;
+            /* 按钮文字颜色 */
+            border: none;
+            /* 去掉默认边框 */
+            border-radius: 5px;
+            /* 圆角效果 */
+            cursor: pointer;
+            /* 鼠标悬停时的指针样式 */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            /* 添加过渡效果 */
+        }
+
+        button {
+            font-size: 12px;
+            /* 合适的字体大小 */
+            padding: 6px 10px;
+            /* 上下左右的内边距 */
+            background-color: #04bb3b;
+            /* 按钮背景色（蓝色） */
+            color: white;
+            /* 按钮文字颜色 */
+            border: none;
+            /* 去掉默认边框 */
+            border-radius: 5px;
+            /* 圆角效果 */
+            cursor: pointer;
+            /* 鼠标悬停时的指针样式 */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            /* 添加过渡效果 */
+        }
+
+
+
+        button:hover,
+        .big:hover {
+            background-color: #05afbb;
+            /* 悬停时变深的颜色 */
+            transform: scale(1.05);
+            /* 悬停时略微放大 */
+        }
+
+        button:active,
+        .big:active {
+            background-color: #00e9e9;
+            /* 点击时更深的颜色 */
+            transform: scale(0.98);
+            /* 点击时稍微缩小 */
+        }
+
+        button:disabled,
+        .big:disabled {
+            background-color: #cccccc;
+            /* 禁用状态的背景色 */
+            color: #666666;
+            /* 禁用状态的文字颜色 */
+            cursor: not-allowed;
+            /* 禁用时的鼠标样式 */
+        }
+
+        h2,
+        h4 {
+            display: inline-block;
+            line-height: 3px;
+        }
+
+        .ib {
+            display: inline-block;
+        }
+
+        #pic {
+            /* width: 500px;
+        height: 300px;
+        border: 1px solid black; */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 设置所有 input 标签的宽度 */
+        input {
+            width: 5ch;
+            /* 设置宽度为 5 个字符的显示空间 */
+            box-sizing: border-box;
+            /* 确保 padding 和 border 不影响宽度 */
+        }
+
+        #cursor-box {
+            border-radius: 50%;
+            width: 7px;
+            height: 7px;
+            border: 3px solid;
+            position: absolute;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, 0);
+            animation: borderColorChange 3500ms infinite;
+        }
+
+        @keyframes borderColorChange {
+            0% {
+                border-color: rgb(255, 0, 0);
+                /* 红色 */
+            }
+
+            33% {
+                border-color: rgb(0, 255, 0);
+                /* 绿色 */
+            }
+
+            66% {
+                border-color: rgb(0, 0, 255);
+                /* 蓝色 */
+            }
+
+            100% {
+                border-color: rgb(255, 0, 0);
+                /* 返回红色 */
+            }
+        }
+
+
+        /* #controls {
+        margin-top: 20px;
+    } */
+
+        #screen {
+            /* pointer-events: none; */
+            /* 禁用所有鼠标事件 */
+            user-select: none;
+            /* 禁用选中 */
+            /* object-fit: contain; */
+            object-fit: cover;
+            height: 100%;
+            width: 100%;
+        }
+
+        .special-form {
+            margin: 10px 0;
+        }
+
+        .reflash,
+        .invisible {
+            display: none;
+            pointer-events: none;
+            /* 禁止所有鼠标事件 */
+        }
+
+        /* 悬浮窗的样式 */
+        #control-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 110px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 0 0 10px 0;
+            display: none;
+            margin-top: 20px;
+            /* 默认隐藏 */
+        }
+
+        /* 展开和收起按钮的样式 */
+        #ff-button {
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 0 0 10px 0;
+            cursor: pointer;
+            margin-top: 20px;
+            user-select: none;
+            z-index: 114;
+            /* 置顶 */
+        }
+
+        input[type="range"] {
+            width: 300px;
+            /* 或者使用 transform: scaleX(2); */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- stream显示 -->
+    <div id="pic" style="width: 100%;">
+        <!-- <img id="screen" src="http://192.168.100.30:999/images/IMG74.jpg" alt="screen" draggable="false"> -->
+        <img id="screen" src="/stream" alt="screen" draggable="false">
+    </div>
+
+    <!-- 悬浮窗 -->
+    <!-- 左上 -->
+    <div id="ff-button">sz</div>
+    <div id="control-panel">
+        <button onclick="setSize('', '100%')">宽and高100%</button>
+        <button onclick="setSize('640px', '360px')">360p</button>
+        <button onclick="setSize('854px', '480px')">480p</button>
+        <button onclick="setSize('960px', '540px')"><i>540p</i></button>
+        <button onclick="setSize('1280px', '720px')">720p</button>
+        <button onclick="setSize('1920px', '1080px')">1080p</button>
+        <button onclick="setSize('256px', '144px')">144p</button>
+
+        <button id="streamButton" class="off">Start Streaming</button>
+
+        <script>
+            const videoElement = document.getElementById('screen');
+            const streamButton = document.getElementById('streamButton');
+            let streaming = false;
+
+            streamButton.onclick = () => {
+                streaming = !streaming;
+
+                if (streaming) {
+                    videoElement.src = "/stream";  // 启动流
+                    streamButton.textContent = "Stop Streaming";
+                    streamButton.classList.remove('off');
+                } else {
+                    videoElement.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAIAAAC0SDtlAAAADklEQVR4nGNgGAVDEgAAAbkAAftY4p";  // 设置占位图片  // 设置占位图片
+                    streamButton.textContent = "Start Streaming";
+                    streamButton.classList.add('off');
+                }
+            };
+
+            // 默认加载占位图
+        </script>
+
+        <script>
+            // alert("fff")
+
+            // 展开和收起左上角sz弹窗
+            document.getElementById('ff-button').addEventListener('click', function () {
+                var controlPanel = document.getElementById('control-panel');
+                if (controlPanel.style.display === 'none' || controlPanel.style.display === '') {
+                    controlPanel.style.display = 'block';
+                } else {
+                    controlPanel.style.display = 'none';
+                }
+            });
+
+            // 设置图片大小的函数
+            // 现在是改图片外的div#pic
+            function setSize(width, height) {
+                var screen = document.getElementById('pic');
+                screen.style.width = width;
+                screen.style.height = height;
+            }
+        </script>
+    </div>
+
+
+    <!-- Contents -->
+    <div id="contentsffffffffffffffffffffffffffffff">
+
+
+        <div id="basic">
+        </div>
+
+
+        <div id="mouse">
+            <details>
+                <summary>
+                    <h2>Mouse</h2>
+                </summary>
+
+                <!-- 信息 -->
+                <label>屏幕宽度X: <input id="width-input" readonly></label>
+                <label>屏幕高度Y: <input id="height-input" readonly></label>
+                <label>鼠标X: <input id="Xclient" readonly></label>
+                <label>鼠标Y: <input id="Yclient" readonly></label>
+                <label><input type="checkbox" id="autoClick" checked=“1”> 自动左键</label>
+                <br>
+                <!-- 发送按键 -->
+                <button id="left-click-btn">左键点击</button>
+                <button id="right-click-btn">右键点击</button>
+                <button id="middle-click-btn">中键点击</button>
+                <button id="left-double-click-btn">左双击</button>
+                <button id="right-double-click-btn">右双击</button>
+                <button id="middle-double-click-btn">中双击</button>
+                <br>
+                <br>
+                <!-- 滚轮滑条 -->
+                <label for="slider">负下正上:</label>
+                <input type="range" id="slider" min="-2000" max="2000" value="0">
+
+                <!-- 实时显示滑条值的输入框 -->
+                <!-- <label for="sliderValue">当前值:</label> -->
+                <input type="text" id="sliderValue" readonly>
+
+                <!-- 提交按钮 -->
+                <button id="submitScrollButton">滚</button>
+
+                <script>
+                    // 获取相关元素
+                    const picDiv = document.getElementById('screen');
+                    const widthInput = document.getElementById('width-input');
+                    const heightInput = document.getElementById('height-input');
+                    const xCoordInput = document.getElementById('Xclient');
+                    const yCoordInput = document.getElementById('Yclient');
+
+                    // 观察图片的尺寸变化
+                    const observer = new ResizeObserver(() => {
+                        const width = picDiv.clientWidth;
+                        const height = picDiv.clientHeight;
+                        widthInput.value = width;
+                        heightInput.value = height;
+                    });
+                    observer.observe(picDiv);
+
+                    // 创建小红框
+                    const cursorBox = document.createElement('div');
+                    cursorBox.id = 'cursor-box';
+                    picDiv.parentElement.appendChild(cursorBox);
+
+                    let relativeX, relativeY; // 用于存储鼠标的相对坐标
+
+                    let prevX = null;
+                    let prevY = null;
+
+                    picDiv.addEventListener('mousemove', (event) => {
+                        const rect = picDiv.getBoundingClientRect();
+                        const relativeX = event.clientX - rect.left;
+                        const relativeY = event.clientY - rect.top;
+
+                        // 更新小方块的位置
+                        cursorBox.style.left = `${relativeX - cursorBox.offsetWidth / 2}px`;
+                        cursorBox.style.top = `${relativeY - cursorBox.offsetHeight / 2}px`;
+
+                        // 同时更新输入框中的坐标
+                        const roundedX = Math.round(relativeX);
+                        const roundedY = Math.round(relativeY);
+                        xCoordInput.value = roundedX;
+                        yCoordInput.value = roundedY;
+
+                        // 只有在坐标发生变化时，才发送数据
+                        if (roundedX !== prevX || roundedY !== prevY) {
+                            sendPositionData();
+                            prevX = roundedX;
+                            prevY = roundedY;
+                        }
+                    });
+
+                    // 鼠标左键按下时，小方块变绿
+                    picDiv.addEventListener('mousedown', (event) => {
+                        if (event.button === 0) { // 检查是否是左键
+                            cursorBox.style.backgroundColor = 'green';
+                            // 当小方块变绿时，检查复选框状态并发送数据
+                            if (document.getElementById('autoClick').checked) {
+                                sendButtonData('left_click');
+                            }
+                        }
+                    });
+
+                    // 鼠标左键松开时，小方块恢复透明
+                    picDiv.addEventListener('mouseup', () => {
+                        cursorBox.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+                    });
+
+                    // 发送坐标信息和图片尺寸的函数
+                    function sendPositionData() {
+                        fetch('/mouse-pos', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                img_width: widthInput.value,
+                                img_height: heightInput.value,
+                                cursor_x: xCoordInput.value,
+                                cursor_y: yCoordInput.value,
+                                // auto_click: autoClickCheckbox.checked
+                            })
+                        }).then(response => response.json())
+                            .then(data => {
+                                console.log('Position data sent:', data);
+                            })
+                            .catch(error => {
+                                console.error('Error sending position data:', error);
+                            });
+                    }
+
+                    // 发送按钮点击数据的函数
+                    function sendButtonData(buttonType) {
+                        fetch('/mouse-btn', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                button: buttonType,
+                                // img_width: widthInput.value,
+                                // img_height: heightInput.value,
+                                // cursor_x: xCoordInput.value,
+                                // cursor_y: yCoordInput.value,
+                                // auto_click: autoClickCheckbox.checked
+                            })
+                        }).then(response => response.json())
+                            .then(data => {
+                                console.log('Button data sent:', data);
+                            })
+                            .catch(error => {
+                                console.error('Error sending button data:', error);
+                            });
+                    }
+
+                    // 为每个按钮绑定点击事件
+                    document.getElementById('left-click-btn').addEventListener('click', () => {
+                        sendButtonData('left_click');
+                    });
+
+                    document.getElementById('right-click-btn').addEventListener('click', () => {
+                        sendButtonData('right_click');
+                    });
+
+                    document.getElementById('middle-click-btn').addEventListener('click', () => {
+                        sendButtonData('middle_click');
+                    });
+
+                    document.getElementById('left-double-click-btn').addEventListener('click', () => {
+                        sendButtonData('left_double_click');
+                    });
+
+                    document.getElementById('right-double-click-btn').addEventListener('click', () => {
+                        sendButtonData('right_double_click');
+                    });
+
+                    document.getElementById('middle-double-click-btn').addEventListener('click', () => {
+                        sendButtonData('middle_double_click');
+                    });
+
+                    // 每秒发送坐标信息和图片尺寸
+                    // setInterval(sendPositionData, 1000 / 30); // 每秒30次
+                </script>
+
+                <script>
+                    // 获取滑条和输入框元素
+                    const slider = document.getElementById("slider");
+                    const sliderValue = document.getElementById("sliderValue");
+
+                    // 实时更新输入框的值
+                    slider.addEventListener("input", function () {
+                        sliderValue.value = slider.value;
+                    });
+
+                    // 绑定提交按钮事件
+                    document.getElementById("submitScrollButton").addEventListener("click", function () {
+                        // 获取滑条的当前值
+                        const value = parseInt(slider.value);
+
+                        // 发送到后端
+                        sendDataS('/scroll', { value: value }, function () {
+                            console.log('滑条值已提交');
+                            // 滑条归零
+                            slider.value = 0;
+                            sliderValue.value = 0;
+                        });
+                    });
+
+                    // 发送数据的通用函数
+                    function sendDataS(url, data, callback) {
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                            .then(response => response.json())
+                            .then(result => {
+                                console.log('后端返回:', result);
+                                if (callback) callback();
+                            })
+                            .catch(error => {
+                                console.error('发送错误:', error);
+                            });
+                    }
+
+                    function sendValue() {
+                        var sliderValue = slider.value;
+
+                        var data = {
+                            "value": sliderValue
+                        };
+
+                        fetch('/scroll', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                            .then(response => response.json())
+                            .then(result => {
+                                console.log('后端返回:', result);
+                            })
+                            .catch(error => {
+                                console.error('发送错误:', error);
+                            });
+                    }
+                </script>
+
+            </details>
+        </div>
+
+
+        <div id="keyboard">
+            <details>
+                <summary>
+                    <h2>Keyboard</h2>
+                </summary>
+
+                <div>
+                    <label for="pressInput">Press:</label>
+                    <input type="text" id="pressInput" name="pressInput">
+                    <button onclick="sendPressValue()">Press</button>
+                </div>
+
+                <div>
+                    <label for="typewriteInput">Typewrite:</label>
+                    <input type="text" id="typewriteInput" name="typewriteInput">
+                    <button onclick="sendTypeValue()">CtrlCV</button>
+                </div>
+
+                <div>
+                    <label>Hotkey:</label>
+                    <input type="checkbox" id="ctrl" name="ctrl"> <label for="ctrl">Ctrl</label>
+                    <input type="checkbox" id="shift" name="shift"> <label for="shift">Shift</label>
+                    <input type="checkbox" id="win" name="win"> <label for="win">Win</label>
+                    <input type="checkbox" id="alt" name="alt"> <label for="alt">Alt</label>
+                    <input type="checkbox" id="tab" name="tab"> <label for="tab">Tab</label>
+                    <input type="text" id="hotkeyInput" name="hotkeyInput">
+                    <button onclick="sendHotkeyValue()">Hotkey</button>
+                </div>
+
+                <script>
+                    function sendPressValue() {
+                        const pressValue = document.getElementById("pressInput").value;
+                        sendData('/press', { "press": pressValue }, resetPressInput);
+                    }
+
+                    function sendTypeValue() {
+                        const typeValue = document.getElementById("typewriteInput").value;
+                        sendData('/typewrite', { "typewrite": typeValue }, resetTypewriteInput);
+                    }
+
+                    function sendHotkeyValue() {
+                        const hotkeyValue = document.getElementById("hotkeyInput").value;
+                        const ctrl = document.getElementById("ctrl").checked;
+                        const shift = document.getElementById("shift").checked;
+                        const win = document.getElementById("win").checked;
+                        const alt = document.getElementById("alt").checked;
+                        const tab = document.getElementById("tab").checked;
+
+                        sendData('/hotkey', {
+                            "hotkey": hotkeyValue,
+                            "modifiers": {
+                                "ctrl": ctrl,
+                                "shift": shift,
+                                "win": win,
+                                "alt": alt,
+                                "tab": tab
+                            }
+                        }, resetHotkeyInput);
+                    }
+
+                    function sendData(url, data, resetFunction) {
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                            .then(response => response.json())
+                            .then(result => {
+                                console.log('后端返回:', result);
+                                resetFunction(); // 调用重置函数
+                            })
+                            .catch(error => {
+                                console.error('发送错误:', error);
+                            });
+                    }
+
+                    function resetPressInput() {
+                        document.getElementById("pressInput").value = "";
+                    }
+
+                    function resetTypewriteInput() {
+                        document.getElementById("typewriteInput").value = "";
+                    }
+
+                    function resetHotkeyInput() {
+                        document.getElementById("hotkeyInput").value = "";
+                        document.getElementById("ctrl").checked = false;
+                        document.getElementById("shift").checked = false;
+                        document.getElementById("win").checked = false;
+                        document.getElementById("alt").checked = false;
+                        document.getElementById("tab").checked = false;
+                    }
+                </script>
+
+
+            </details>
+        </div>
+
+
+        <div id="shortcut">
+            <details>
+                <summary>
+                    <h4>Shortcut</h4>
+                </summary>
+
+                <!-- 按钮部分 -->
+                <button id="copyButton">复制</button>
+                <button id="pasteButton">粘贴</button>
+                <button id="selectAllButton">全选</button>
+                <br>
+                <button id="showDesktopButton">显示桌面</button>
+                <button id="altF4Button">Alt+F4</button>
+                <br>
+                <button id="switchDesktopLeftButton">左切桌面</button>
+                <button id="switchDesktopRightButton">右切桌面</button>
+                <button id="newDesktopButton">新建桌面</button>
+
+                <script>
+                    function sendCustomHotkey(hotkeyValue, ctrl = false, shift = false, win = false, alt = false, tab = false) {
+                        sendData('/hotkey', {
+                            "hotkey": hotkeyValue,
+                            "modifiers": {
+                                "ctrl": ctrl,
+                                "shift": shift,
+                                "win": win,
+                                "alt": alt,
+                                "tab": tab
+                            }
+                        }, resetHotkeyInput);
+                    }
+                </script>
+
+                <script>
+                    // 绑定按钮事件
+                    document.getElementById("copyButton").addEventListener("click", function () {
+                        sendCustomHotkey('c', true, false, false, false, false); // Ctrl + C
+                    });
+
+                    document.getElementById("pasteButton").addEventListener("click", function () {
+                        sendCustomHotkey('v', true, false, false, false, false); // Ctrl + V
+                    });
+
+                    document.getElementById("selectAllButton").addEventListener("click", function () {
+                        sendCustomHotkey('a', true, false, false, false, false); // Ctrl + A
+                    });
+
+                    document.getElementById("showDesktopButton").addEventListener("click", function () {
+                        sendCustomHotkey('d', false, false, true, false, false); // Win + D
+                    });
+
+                    document.getElementById("altF4Button").addEventListener("click", function () {
+                        sendCustomHotkey('f4', false, false, false, true, false); // Alt + F4
+                    });
+
+                    // 修正后的桌面切换部分
+                    document.getElementById("switchDesktopRightButton").addEventListener("click", function () {
+                        sendCustomHotkey('right', true, false, true, false, false); // Win + Ctrl + Right
+                    });
+
+                    document.getElementById("switchDesktopLeftButton").addEventListener("click", function () {
+                        sendCustomHotkey('left', true, false, true, false, false); // Win + Ctrl + Left
+                    });
+
+                    document.getElementById("newDesktopButton").addEventListener("click", function () {
+                        sendCustomHotkey('d', true, false, true, false, false); // Win + Ctrl + D
+                    });
+                </script>
+            </details>
+        </div>
+
+
+        <div id="cmd">
+            <details>
+                <summary>
+                    <h4>CMD</h4>
+                </summary>
+
+                <div>
+                    <label for="pythonCommand">Python 命令:</label><br>
+                    <textarea id="pythonCommand" rows="5" cols="40"></textarea><br>
+                    <button onclick="sendPythonCommand()">发送 Python 命令</button>
+                </div>
+
+                <div>
+                    <label for="bashCommand">Bash 命令:</label><br>
+                    <textarea id="bashCommand" rows="5" cols="40"></textarea><br>
+                    <button onclick="sendBashCommand()">发送 Bash 命令</button>
+                </div>
+
+                <script>
+                    function sendPythonCommand() {
+                        const command = document.getElementById("pythonCommand").value;
+                        sendDataC('/python', command);
+                    }
+
+                    function sendBashCommand() {
+                        const command = document.getElementById("bashCommand").value;
+                        sendDataC('/bash', command);
+                    }
+
+                    function sendDataC(url, command) {
+                        const formData = new FormData();
+                        formData.append('command', command);
+
+                        fetch(url, {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => response.json())
+                            .then(result => {
+                                console.log('后端返回:', result);
+                            })
+                            .catch(error => {
+                                console.error('发送错误:', error);
+                            });
+                    }
+                </script>
+
+                <hr>
+
+                <!-- Python 命令区域 -->
+                <button id="openCurrentFolderButton">打开当前文件夹</button>
+                <button id="openStudyFolderButton">打开study</button>
+                <button id="alertTemplateButton">弹窗模版</button>
+
+                <!-- Bash 命令区域 -->
+                <button id="restartButton">重启</button>
+                <button id="shutdownButton">关机</button>
+
+
+                <script>
+                    // 绑定 Python 命令按钮
+                    document.getElementById("openCurrentFolderButton").addEventListener("click", function () {
+                        document.getElementById("pythonCommand").value = 'os.startfile(".")';
+                    });
+
+                    document.getElementById("openStudyFolderButton").addEventListener("click", function () {
+                        document.getElementById("pythonCommand").value = 'os.startfile("D:\\\\study")';
+                    });
+
+                    document.getElementById("alertTemplateButton").addEventListener("click", function () {
+                        document.getElementById("pythonCommand").value = 'pyautogui.alert("f")';
+                    });
+
+                    // 绑定 Bash 命令按钮
+                    document.getElementById("restartButton").addEventListener("click", function () {
+                        document.getElementById("bashCommand").value = 'shutdown /r /f /t 0';
+                    });
+
+                    document.getElementById("shutdownButton").addEventListener("click", function () {
+                        document.getElementById("bashCommand").value = 'shutdown /s /f /t 0';
+                    });
+                </script>
+        </div>
+
+
+        <div id="config">
+            <details>
+                <summary>
+                    <h4>Config</h4>
+                </summary>
+
+                <!-- 输入框 -->
+                <label for="default_resolution">Default Resolution:</label>
+                <input type="text" id="default_resolution" placeholder="720p">
+                <br>
+
+                <label for="quality">QUALITY:</label>
+                <input type="text" id="quality" placeholder="80">
+                <br>
+
+                <label for="fps">FPS:</label>
+                <input type="text" id="fps" placeholder="30">
+                <br>
+
+                <!-- 提交按钮 -->
+                <button id="submitConfigButton">更改配置</button>
+
+                <script>
+                    // 绑定提交按钮事件
+                    document.getElementById("submitConfigButton").addEventListener("click", function () {
+                        // 获取输入框的值
+                        const defaultResolution = document.getElementById("default_resolution").value;
+                        const quality = document.getElementById("quality").value;
+                        const fps = document.getElementById("fps").value;
+
+                        // 构造 JSON 数据
+                        const configData = {
+                            default_resolution: defaultResolution,
+                            QUALITY: quality,
+                            FPS: fps
+                        };
+
+                        // 发送到后端
+                        sendData('/config', configData, function () {
+                            console.log('配置已提交');
+                        });
+                    });
+                </script>
+
+
+                <!-- 以下不要展开 -->
+                <details>
+                    <summary>pyautogui支持按键</summary>
+                    <table align="left" border="1" cellpadding="1" cellspacing="1" style="width:650px;">
+                        <thead>
+                            <tr>
+                                <th style="width:77px;">类别</th>
+                                <th style="width:421px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="width:77px;">字母</td>
+                                <td style="width:421px;">'a', 'b', 'c', 'd', 'e','f', 'g', 'h', 'i', 'j', 'k', 'l',
+                                    'm',
+                                    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'</td>
+                            </tr>
+                            <tr>
+                                <td style="width:77px;">数字</td>
+                                <td style="width:421px;">'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'</td>
+                            </tr>
+                            <tr>
+                                <td style="width:77px;">符号</td>
+                                <td style="width:421px;">'\t', '\n', '\r', ' ', '!', '"', '#', '$', '%', '&amp;',
+                                    "'",
+                                    '(',
+                                    ')', '*', '+', ',', '-', '.', '/', , ':', ';', '&lt;', '=', '&gt;', '?', '@',
+                                    '[',
+                                    '\\',
+                                    ']', '^', '_', '`', '{', '|', '}', '~',</td>
+                            </tr>
+                            <tr>
+                                <td style="width:77px;">F键</td>
+                                <td style="width:421px;">'f1', 'f10', 'f11', 'f12', 'f13', 'f14', 'f15', 'f16',
+                                    'f17',
+                                    'f18', 'f19', 'f2', 'f20', 'f21', 'f22', 'f23', 'f24', 'f3', 'f4', 'f5', 'f6',
+                                    'f7',
+                                    'f8', 'f9',</td>
+                            </tr>
+                            <tr>
+                                <td style="width:77px;">数字键盘</td>
+                                <td style="width:421px;">'num0', 'num1', 'num2', 'num3', 'num4', 'num5', 'num6',
+                                    'num7',
+                                    'num8', 'num9',&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <td style="width:77px;">其他</td>
+                                <td style="width:421px;">'accept', 'add', 'alt', 'altleft', 'altright', 'apps',
+                                    'backspace',
+                                    'browserback', 'browserfavorites', 'browserforward', 'browserhome',
+                                    'browserrefresh',
+                                    'browsersearch', 'browserstop', 'capslock', 'clear', 'convert', 'ctrl',
+                                    'ctrlleft',
+                                    'ctrlright', 'decimal', 'del', 'delete', 'divide', 'down', 'end', 'enter',
+                                    'esc',
+                                    'escape', 'execute', 'final', 'fn', 'hanguel', 'hangul', 'hanja', 'help',
+                                    'home',
+                                    'insert', 'junja', 'kana', 'kanji', 'launchapp1', 'launchapp2', 'launchmail',
+                                    'launchmediaselect', 'left', 'modechange', 'multiply', 'nexttrack',
+                                    'nonconvert', ,
+                                    'numlock', 'pagedown', 'pageup', 'pause', 'pgdn', 'pgup', 'playpause',
+                                    'prevtrack',
+                                    'print', 'printscreen', 'prntscrn', 'prtsc', 'prtscr', 'return', 'right',
+                                    'scrolllock',
+                                    'select', 'separator', 'shift', 'shiftleft', 'shiftright', 'sleep', 'space',
+                                    'stop',
+                                    'subtract', 'tab', 'up', 'volumedown', 'volumemute', 'volumeup', 'win',
+                                    'winleft',
+                                    'winright', 'yen', 'command', 'option', 'optionleft', 'optionright'</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </details>
+            </details>
+        </div>
+
+        <p>
+            <a href="https://fff.com/wp-content/themes/twentytwentyfour/templates/backup.php">自定义主页</a>
+        </p>
+    </div>
+</body>
+
+</html>
